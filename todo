@@ -100,15 +100,18 @@ function usage() {
     echo "Subtask Commands:"
     echo "  subtask <parent> <title>          Add a subtask to a todo"
     echo ""
+    echo "Comment Commands:"
+    echo "  comment <todo> <message>          Add a comment to a todo"
+    echo ""
     echo "Board Commands:"
-    echo "  board                             Show default board (ASCII view)"
     echo "  board list                        List all accessible boards"
-    echo "  board show [board]                Show board with columns and cards"
-    echo "  board column <column>             List cards in a column"
-    echo "  board move <card> <column>        Move card to column"
-    echo "  board done <card>                 Mark card done in current column"
-    echo "  board assign <card>               Assign card to current user"
-    echo "  board clear <column>              Delete all cards in column"
+    echo "  board show <board>                Show board with columns and cards"
+    echo "  board <board>                     Shorthand for 'board show <board>'"
+    echo "  board <board> column <column>     List cards in a column"
+    echo "  board <board> move <card> <col>   Move card to column"
+    echo "  board <board> done <card>         Mark card done in current column"
+    echo "  board <board> assign <card>       Assign card to current user"
+    echo "  board <board> clear <column>      Delete all cards in column"
     echo ""
     echo "Project Commands:"
     echo "  project list                      List all projects"
@@ -130,8 +133,8 @@ function usage() {
     echo "  Zsh:  source /path/to/cli/todo-completion.zsh"
     echo ""
     echo "Environment:"
-    echo "  TODO_API_KEY      Your API key (required unless using --auth-file)"
-    echo "  TODO_API_URL      API URL (default: https://taskleef.com)"
+    echo "  TASKLEEF_API_KEY  Your API key (required unless using --auth-file)"
+    echo "  TASKLEEF_API_URL  API URL (default: https://taskleef.com)"
 }
 
 function api_call() {
@@ -565,6 +568,20 @@ function show_todo() {
             echo -n "Tags: "
             echo "$response" | jq -r '.tags | map("[" + .name + "]") | join(" ")'
         fi
+
+        # Show comments
+        local comments
+        comments=$(api_call GET "/api/todos/${full_id}/comments")
+        local comment_count
+        comment_count=$(echo "$comments" | jq 'if type == "array" then length else 0 end')
+
+        if [[ "$comment_count" -gt 0 ]]; then
+            echo ""
+            echo -e "${CYAN}Comments:${NC}"
+            echo "$comments" | jq -r '.[] | "\(.createdAt | split("T")[0])\t\(.authorName)\t\(.content)"' | while IFS=$'\t' read -r date author content; do
+                echo -e "   ${DIM}${date} ${author}${NC}  ${content}"
+            done
+        fi
     else
         echo -e "${RED}Error: $response${NC}"
     fi
@@ -605,6 +622,49 @@ function add_subtask() {
         local id
         id=$(echo "$response" | jq -r '.id | split("-")[0]')
         echo -e "${GREEN}Created subtask:${NC} $title (${id})"
+    else
+        echo -e "${RED}Error: $response${NC}"
+    fi
+}
+
+function add_comment() {
+    local todo_query="$1"
+    shift
+    local content="$*"
+
+    if [[ -z "$todo_query" ]]; then
+        echo -e "${RED}Error: Todo title or ID is required${NC}"
+        echo "Usage: todo comment <todo-title-or-id> \"Your comment\""
+        exit 1
+    fi
+
+    if [[ -z "$content" ]]; then
+        echo -e "${RED}Error: Comment content is required${NC}"
+        echo "Usage: todo comment <todo-title-or-id> \"Your comment\""
+        exit 1
+    fi
+
+    # Find the full ID (by prefix or title)
+    local full_id
+    full_id=$(find_todo_id "$todo_query")
+
+    if [[ -z "$full_id" ]]; then
+        echo -e "${RED}Error: No todo found matching '$todo_query'${NC}"
+        exit 1
+    fi
+
+    local response
+    local json_body
+    json_body=$(jq -n --arg content "$content" '{content: $content}')
+    response=$(api_call POST "/api/todos/${full_id}/comments" "$json_body")
+
+    if echo "$response" | jq -e '.id' > /dev/null 2>&1; then
+        # Get todo title for display
+        local todo
+        todo=$(api_call GET "/api/todos/${full_id}")
+        local title
+        title=$(echo "$todo" | jq -r '.title')
+        echo -e "${GREEN}Added comment to:${NC} $title"
     else
         echo -e "${RED}Error: $response${NC}"
     fi
@@ -884,10 +944,18 @@ function board_list() {
 function board_show() {
     local board_query="$1"
 
+    if [[ -z "$board_query" ]]; then
+        echo -e "${RED}Error: Board name or ID required${NC}"
+        echo "Usage: todo board show <board-name-or-id>"
+        echo ""
+        echo "List available boards with: todo board list"
+        exit 1
+    fi
+
     local board_id
     board_id=$(find_board_id "$board_query")
     if [[ -z "$board_id" ]]; then
-        echo -e "${RED}Error: No board found${NC}"
+        echo -e "${RED}Error: No board found matching '$board_query'${NC}"
         exit 1
     fi
 
@@ -948,18 +1016,19 @@ function board_show() {
 }
 
 function board_column() {
-    local column_query="$1"
+    local board_query="$1"
+    local column_query="$2"
 
-    if [[ -z "$column_query" ]]; then
-        echo -e "${RED}Error: Column name or ID required${NC}"
-        echo "Usage: todo board column <column-name-or-id>"
+    if [[ -z "$board_query" || -z "$column_query" ]]; then
+        echo -e "${RED}Error: Board and column required${NC}"
+        echo "Usage: todo board <board> column <column-name-or-id>"
         exit 1
     fi
 
     local board_id
-    board_id=$(find_board_id "")
+    board_id=$(find_board_id "$board_query")
     if [[ -z "$board_id" ]]; then
-        echo -e "${RED}Error: No accessible boards found${NC}"
+        echo -e "${RED}Error: No board found matching '$board_query'${NC}"
         exit 1
     fi
 
@@ -1020,19 +1089,20 @@ function board_column() {
 }
 
 function board_move() {
-    local card_query="$1"
-    local column_query="$2"
+    local board_query="$1"
+    local card_query="$2"
+    local column_query="$3"
 
-    if [[ -z "$card_query" || -z "$column_query" ]]; then
-        echo -e "${RED}Error: Card and column required${NC}"
-        echo "Usage: todo board move <card-title-or-id> <column-name-or-id>"
+    if [[ -z "$board_query" || -z "$card_query" || -z "$column_query" ]]; then
+        echo -e "${RED}Error: Board, card and column required${NC}"
+        echo "Usage: todo board <board> move <card-title-or-id> <column-name-or-id>"
         exit 1
     fi
 
     local board_id
-    board_id=$(find_board_id "")
+    board_id=$(find_board_id "$board_query")
     if [[ -z "$board_id" ]]; then
-        echo -e "${RED}Error: No accessible boards found${NC}"
+        echo -e "${RED}Error: No board found matching '$board_query'${NC}"
         exit 1
     fi
 
@@ -1079,18 +1149,19 @@ function board_move() {
 }
 
 function board_done() {
-    local card_query="$1"
+    local board_query="$1"
+    local card_query="$2"
 
-    if [[ -z "$card_query" ]]; then
-        echo -e "${RED}Error: Card title or ID required${NC}"
-        echo "Usage: todo board done <card-title-or-id>"
+    if [[ -z "$board_query" || -z "$card_query" ]]; then
+        echo -e "${RED}Error: Board and card required${NC}"
+        echo "Usage: todo board <board> done <card-title-or-id>"
         exit 1
     fi
 
     local board_id
-    board_id=$(find_board_id "")
+    board_id=$(find_board_id "$board_query")
     if [[ -z "$board_id" ]]; then
-        echo -e "${RED}Error: No accessible boards found${NC}"
+        echo -e "${RED}Error: No board found matching '$board_query'${NC}"
         exit 1
     fi
 
@@ -1122,11 +1193,12 @@ function board_done() {
 }
 
 function board_assign() {
-    local card_query="$1"
+    local board_query="$1"
+    local card_query="$2"
 
-    if [[ -z "$card_query" ]]; then
-        echo -e "${RED}Error: Card title or ID required${NC}"
-        echo "Usage: todo board assign <card-title-or-id>"
+    if [[ -z "$board_query" || -z "$card_query" ]]; then
+        echo -e "${RED}Error: Board and card required${NC}"
+        echo "Usage: todo board <board> assign <card-title-or-id>"
         exit 1
     fi
 
@@ -1139,9 +1211,9 @@ function board_assign() {
     fi
 
     local board_id
-    board_id=$(find_board_id "")
+    board_id=$(find_board_id "$board_query")
     if [[ -z "$board_id" ]]; then
-        echo -e "${RED}Error: No accessible boards found${NC}"
+        echo -e "${RED}Error: No board found matching '$board_query'${NC}"
         exit 1
     fi
 
@@ -1176,18 +1248,19 @@ function board_assign() {
 }
 
 function board_clear() {
-    local column_query="$1"
+    local board_query="$1"
+    local column_query="$2"
 
-    if [[ -z "$column_query" ]]; then
-        echo -e "${RED}Error: Column name or ID required${NC}"
-        echo "Usage: todo board clear <column-name-or-id>"
+    if [[ -z "$board_query" || -z "$column_query" ]]; then
+        echo -e "${RED}Error: Board and column required${NC}"
+        echo "Usage: todo board <board> clear <column-name-or-id>"
         exit 1
     fi
 
     local board_id
-    board_id=$(find_board_id "")
+    board_id=$(find_board_id "$board_query")
     if [[ -z "$board_id" ]]; then
-        echo -e "${RED}Error: No accessible boards found${NC}"
+        echo -e "${RED}Error: No board found matching '$board_query'${NC}"
         exit 1
     fi
 
@@ -1237,38 +1310,62 @@ function board_clear() {
 }
 
 function handle_board_command() {
-    local subcmd="$1"
+    local first_arg="$1"
     shift
 
-    case "$subcmd" in
+    case "$first_arg" in
         list|ls)
             board_list
             ;;
         show)
             board_show "$1"
             ;;
-        column|col)
-            board_column "$1"
-            ;;
-        move|mv)
-            board_move "$1" "$2"
-            ;;
-        done)
-            board_done "$1"
-            ;;
-        assign)
-            board_assign "$1"
-            ;;
-        clear)
-            board_clear "$1"
-            ;;
         "")
-            # Default: show board
-            board_show ""
+            echo -e "${RED}Error: Board command or board name required${NC}"
+            echo ""
+            echo "Usage: todo board list"
+            echo "       todo board show <board>"
+            echo "       todo board <board> column <column>"
+            echo "       todo board <board> move <card> <column>"
+            echo "       todo board <board> done <card>"
+            echo "       todo board <board> assign <card>"
+            echo "       todo board <board> clear <column>"
+            echo ""
+            echo "List available boards with: todo board list"
+            exit 1
             ;;
         *)
-            # If subcmd looks like a board name, show that board
-            board_show "$subcmd"
+            # first_arg is a board identifier, next arg is the subcommand
+            local board_query="$first_arg"
+            local subcmd="$1"
+            shift
+
+            case "$subcmd" in
+                column|col)
+                    board_column "$board_query" "$1"
+                    ;;
+                move|mv)
+                    board_move "$board_query" "$1" "$2"
+                    ;;
+                done)
+                    board_done "$board_query" "$1"
+                    ;;
+                assign)
+                    board_assign "$board_query" "$1"
+                    ;;
+                clear)
+                    board_clear "$board_query" "$1"
+                    ;;
+                ""|show)
+                    # Just show the board (supports both "todo board X" and "todo board X show")
+                    board_show "$board_query"
+                    ;;
+                *)
+                    echo -e "${RED}Unknown board subcommand: $subcmd${NC}"
+                    echo "Try: column, move, done, assign, clear"
+                    exit 1
+                    ;;
+            esac
             ;;
     esac
 }
@@ -1332,6 +1429,10 @@ case "${1:-}" in
     subtask)
         shift
         add_subtask "$@"
+        ;;
+    comment)
+        shift
+        add_comment "$@"
         ;;
     complete|done)
         complete_todo "$2"
