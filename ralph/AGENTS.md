@@ -10,6 +10,12 @@
 dotnet build
 dotnet test
 
+## Run the servers
+
+Kill anything on port 5090 and 5173 then
+
+`./run.sh` and read the output to determine which port the vue proxy is running on
+
 ## TaskLeef CLI
 
 your API key is in ~/.todo.claude.auth to use it pass it to the todo CLI
