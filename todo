@@ -417,22 +417,48 @@ function list_todos() {
 
 function add_todo() {
     local title="$1"
+    local description="$2"
+    local project_query="$3"
 
     if [[ -z "$title" ]]; then
         echo -e "${RED}Error: Title is required${NC}"
-        echo "Usage: todo add \"Buy milk\""
+        echo "Usage: todo add \"Buy milk\" [-d \"description\"] [-p \"project\"]"
         exit 1
     fi
 
     local response
     local json_body
-    json_body=$(jq -n --arg title "$title" '{title: $title}')
+    if [[ -n "$description" ]]; then
+        json_body=$(jq -n --arg title "$title" --arg desc "$description" '{title: $title, description: $desc}')
+    else
+        json_body=$(jq -n --arg title "$title" '{title: $title}')
+    fi
     response=$(api_call POST "/api/todos" "$json_body")
 
     if echo "$response" | jq -e '.id' > /dev/null 2>&1; then
-        local id
-        id=$(echo "$response" | jq -r '.id | split("-")[0]')
+        local id full_id
+        full_id=$(echo "$response" | jq -r '.id')
+        id=$(echo "$full_id" | cut -d'-' -f1)
         echo -e "${GREEN}Created:${NC} $title (${id})"
+
+        # Add to project if specified
+        if [[ -n "$project_query" ]]; then
+            local project_id
+            project_id=$(find_project_id "$project_query")
+            if [[ -z "$project_id" ]]; then
+                echo -e "${YELLOW}Warning: No project found matching '$project_query'${NC}"
+            else
+                local proj_response
+                proj_response=$(api_call POST "/api/projects/${project_id}/todos/${full_id}" "{}")
+                if echo "$proj_response" | jq -e '.id' > /dev/null 2>&1; then
+                    local proj_title
+                    proj_title=$(api_call GET "/api/projects/${project_id}" | jq -r '.title')
+                    echo -e "${GREEN}Added to project:${NC} $proj_title"
+                else
+                    echo -e "${YELLOW}Warning: Failed to add to project${NC}"
+                fi
+            fi
+        fi
     else
         echo -e "${RED}Error: $response${NC}"
     fi
@@ -1410,7 +1436,30 @@ function handle_project_command() {
 case "${1:-}" in
     add)
         shift
-        add_todo "$*"
+        add_title=""
+        add_description=""
+        add_project=""
+        while [[ $# -gt 0 ]]; do
+            case "$1" in
+                -d|--description)
+                    add_description="$2"
+                    shift 2
+                    ;;
+                -p|--project)
+                    add_project="$2"
+                    shift 2
+                    ;;
+                *)
+                    if [[ -z "$add_title" ]]; then
+                        add_title="$1"
+                    else
+                        add_title="$add_title $1"
+                    fi
+                    shift
+                    ;;
+            esac
+        done
+        add_todo "$add_title" "$add_description" "$add_project"
         ;;
     list|ls)
         shift
