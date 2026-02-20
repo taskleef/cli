@@ -97,6 +97,58 @@ source /path/to/taskleef/todo-completion.zsh
 
 Add the appropriate line to your `~/.bashrc` or `~/.zshrc` to enable completion on startup.
 
+## MCP Server (AI Integration)
+
+Taskleef provides a [Model Context Protocol](https://modelcontextprotocol.io/) server, allowing AI assistants like Claude Code and Claude Desktop to manage your todos, boards, and Kanban workflows directly.
+
+### Claude Code
+
+```bash
+claude mcp add --transport http taskleef https://taskleef.com/mcp/messages -H "X-API-Key: YOUR_API_KEY"
+```
+
+Then restart Claude Code and verify with `claude mcp list`.
+
+### Manual Configuration
+
+Add to `~/.claude.json`:
+
+```json
+{
+  "mcpServers": {
+    "taskleef": {
+      "type": "http",
+      "url": "https://taskleef.com/mcp/messages",
+      "headers": {
+        "X-API-Key": "your-api-key-here"
+      }
+    }
+  }
+}
+```
+
+### Claude Desktop
+
+Add to your MCP settings file:
+
+```json
+{
+  "mcpServers": {
+    "taskleef": {
+      "transport": {
+        "type": "sse",
+        "url": "https://taskleef.com/mcp/sse",
+        "headers": {
+          "X-API-Key": "your-api-key-here"
+        }
+      }
+    }
+  }
+}
+```
+
+See the [full API documentation](https://taskleef.com/docs) for all 39 available tools across todos, boards, columns, cards, members, tags, and comments.
+
 ## Usage
 
 ### Global Options
