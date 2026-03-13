@@ -1,7 +1,5 @@
 # Taskleef Project
 
-Always re-read PROMPT.md at session start
-
 ## Directory Structure
 This directory contains multiple git worktrees sharing a common repository:
 - `main/` - Main development branch (default)
@@ -19,4 +17,5 @@ When you think you understand a new task, before you begin work on it create a b
 
 
 ## Related Projects
-The todo CLI now lives in ~/code/taskleef-cli for public consumption
+Related projects live as sibling directories (independent git repos):
+- `taskleef-cli/` - Command-line interface (public repo)

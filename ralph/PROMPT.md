@@ -1,75 +1,64 @@
 ## Setup
-- Board: 3bb3ad48
-- Backlog column: Backlog
-- Working column: In Progress
-- Review column: Review
-- Done column: PR Merged
+- Board: <your-board-id>
+- Columns: Backlog → Breakdown → In Progress → Review → PR Merged → Deployed
+
+**Column IDs** (for mcp__taskleef__card_move):
+- Backlog: <column-id>
+- Breakdown: <column-id>
+- In Progress: <column-id>
+- Review: <column-id>
+- PR Merged: <column-id>
+- Deployed: <column-id>
 
 ## Skills
 
-You have access to Superpowers skills. Before any creative work, 
-check if a skill applies:
-
-- brainstorming: Before breaking down cards
+Before any creative work, check if a skill applies:
 - write-plan: Before implementation
+- using-git-worktrees: Before starting feature work
+- finishing-a-development-branch: When work is complete, for cleanup
 - systematic-debugging: When tests fail
 - code-review: After implementation, before PR
 
-Search for skills: find-skills <query>
-Use a skill: Read the SKILL.md and follow its process.
-
-Skills location: ~/.config/superpowers/skills/
+**DO NOT use brainstorming skill** - work directly from card requirements.
 
 ## Process
 
 def move_cards(cards):
    for each card in cards:
-      todo board 3bb3ad48 move <card-id> "Backlog"
+      move card to "Backlog"
 
 def process_card(card):
-   1. Assign and move to "Breakdown":
-      todo board 3bb3ad48 assign <card-id>
-      todo board 3bb3ad48 move <card-id> "Breakdown"
+   1. **Move card to "In Progress" column**
+      - Use: mcp__taskleef__card_move with your In Progress column ID
+      - Verify the move succeeded before proceeding
 
-   2. Get card details:
-      todo show <card-id>
-      Study the description for requirements.
+   2. Show card details and study the description for requirements
+      - Use: mcp__taskleef__card_list to get full card details
 
-   3. **NEW: Brainstorm phase**
-      Load skill: brainstorming
-      - Clarify ambiguous requirements
-      - Identify edge cases
-      - Surface unknowns ("what happens if X?")
-      - Output: .tasks/<card-id>/requirements.md
-      
-      If requirements are underspecified, add comments to card `todo comment <card-id> "message"` and move back to Backlog for human input.  STOP.
+   3. **Requirements analysis**
+      - Read card description carefully
+      - If requirements are underspecified, add comment to card and move back to Backlog for human input. STOP.
 
    4. Search codebase first - don't assume not implemented.
 
-   5. **NEW: Write plan before subtask creation**
-      Load skill: write-plan
-      - Generate implementation plan from requirements.md
+   5. **Write plan** (load skill: write-plan)
+      - Generate implementation plan
       - Output: .tasks/<card-id>/plan.md
       - Plan informs subtask granularity
 
    6. If task is large, break into subtasks:
-      Even if the card already has sub-tasks, consider if it needs additional
+      Even if the card already has sub-tasks, consider if it needs additional.
 
-      let parent = <card-id>
-      todo subtask <card-id> "Subtask description"
-
-      if done making subtasks and len(subtasks) > 0: 
+      if done making subtasks and len(subtasks) > 0:
          let x::xs = subtasks
          move_cards(xs)
          process_card(x)
-   
-   6. todo board 3bb3ad48 move <card-id> "In Progress"
 
-   7. Create worktree and feature branch:
-      git worktree add ../workspaces/<card-id-prefix> -b feature/<human-readable-short-name>
-      cd ../workspaces/<card-id-prefix>
+   7. Create worktree and feature branch (load skill: using-git-worktrees)
+      - Use card-id-prefix for worktree name
+      - Branch: feature/<human-readable-short-name>
 
-   8. Launch 3 Agents (2 in parallel , 1 sequential)
+   8. Launch 3 Agents (2 in parallel, 1 sequential)
 
       Agent 1 (parallel): Backend implementation
       Agent 2 (parallel): Frontend (ClientApp/)
@@ -79,60 +68,74 @@ def process_card(card):
 
       WAIT for both agents.
 
-      Agent 3 (sequential): Code Reviewer
-      Load skill: code-review
+      Agent 3 (sequential): Code Reviewer (load skill: code-review)
       - Review against plan.md requirements
       - Check for missed edge cases from requirements.md
       - Verify FE/BE integration points match
       - Output: .tasks/<card-id>/review.md
-      
+
       If review fails:
          - Create subtasks for fixes
          - move_cards(fix_subtasks)
          - Loop back to step 7 with fix subtasks
 
-   8. If tests fail:
-      Load skill: systematic-debugging
-      - Root cause investigation (don't guess)
-      - Hypothesis → test → verify cycle
-      - Document in .tasks/<card-id>/debug-log.md
-      - Max 3 debug cycles before escalating to human
+   9. If tests fail (load skill: systematic-debugging):
+       - Root cause investigation (don't guess)
+       - Hypothesis → test → verify cycle
+       - Document in .tasks/<card-id>/debug-log.md
+       - Max 3 debug cycles before escalating to human
 
-   9. If tests pass and both frontend and backend builds succeeds:
-      - Commit changes
-      - Push branch: git push -u origin feature/<card-id-prefix>
-      - Create PR: gh pr create --fill
+   10. If tests pass and both frontend and backend builds succeed:
+       - Commit changes
+       - Push branch
+       - Create PR
+       - **IMMEDIATELY move card to "Review" column using mcp__taskleef__card_move**
 
-   10. Have a new sub agent run /code-review:code-review on the PR
+   11. Have a new sub agent run /code-review:code-review on the PR
 
-   11. Address any PR comments
+   12. Address any PR comments
 
-   12. todo board 3bb3ad48 done <card-id>
+   13. **Merge the PR** using gh pr merge --squash
+       - **IMMEDIATELY after merge, move card to "Deployed" column using mcp__taskleef__card_move**
+       - **Mark the underlying todo as complete using mcp__taskleef__complete_todo**
+       - Verify card is in Deployed column before proceeding
 
-   13. Cleanup:
-      cd ../main-repo
-      git worktree remove ../workspaces/<card-id-prefix>
-      git branch -d feature/<card-id-prefix>
-      ensure that any backend processes are not running
-      ensure that any frontend vue proxy processes not running
+   14. Cleanup (load skill: finishing-a-development-branch):
+       - Handles worktree removal and branch cleanup
+       - Ensure backend and frontend processes are stopped
+       - **VERIFY: Card is in "Deployed" column and todo is marked complete**
 
-let alreadyInProgressCards = `todo board 3bb3ad48 column "In Progress"` where in "Inbox" sub-column
-let card::_ = alreadyInProgressCards
+## Startup
 
-Check if there are any open PRs for card. A card in the In Progress inbox at startup means that work has likely been done but interrupted, or the work hasn't been fully completed to the Verification Rules standard
+get cards from "In Progress" column where in "Inbox sub-column"
+   |> LIMIT 5
+   |> With a new sub-agent (card ->
+      Check if there are any open PRs for card. A card in the In Progress inbox at startup means that work has likely been done but interrupted, or the work hasn't been fully completed to the Verification Rules standard
 
-process_card(card)
+      process_card(card)
+   )
+   |> parallel
 
-let backlogCards = `todo board 3bb3ad48 column Backlog`
-let card::_ = backlogCards
-process_card(card)
+get cards from "Backlog" column where Tags.Contains("Bug")
+   |> With a new sub-agent (card -> process_card(card))
+   |> parallel
 
-If len(alreadyInProgress) + len(backlogCards) = 0 then Output <promise>COMPLETE</promise>
+
+Wait for all sub-agents to finish
+
+**After all agents complete:**
+1. Verify all cards have been moved to "Deployed" column
+2. Verify all PRs have been merged
+3. Verify all todos are marked complete
+4. If any cards are still in wrong columns, move them using mcp__taskleef__card_move
+
+If len(alreadyInProgress) + len(backlogCards) = 0 then
+   Output <promise>COMPLETE</promise>
 
 
 ## Verification Rules
 
 99999. Majority of verification should be unit and integration tests. Ask yourself: "Do we have sufficient tests to prevent regression?"
 999999. Consider: Does this feature require a UI to work properly? Have we implemented that UI?
-9999999. UI/frontend changes MUST be verified in Chrome against the local development server before declaring done. 
+9999999. UI/frontend changes MUST be verified in Chrome against the local development server before declaring done.
 99999999. Assume any unexpected errors are our fault and investigate.

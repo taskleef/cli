@@ -244,6 +244,16 @@ $ todo board move "Feature A" "Done"
 Moved: Feature A -> Done
 ```
 
+## MCP Server (AI Integration)
+
+Taskleef provides an MCP server that lets AI assistants like Claude manage your todos, boards, and Kanban workflows directly.
+
+```bash
+claude mcp add --transport http taskleef https://taskleef.com/mcp/messages -H "X-API-Key: YOUR_API_KEY"
+```
+
+See [docs/MCP_SERVER.md](docs/MCP_SERVER.md) for full setup instructions, available tools, and configuration for Claude Desktop.
+
 ## Priority Indicators
 
 - ○ No priority
