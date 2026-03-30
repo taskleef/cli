@@ -230,7 +230,11 @@ todo board clear <column-name-or-id>
 
 ### Interactive TUI
 
-Launch a full-screen terminal UI with an interactive kanban board:
+Launch a full-screen terminal UI with an interactive kanban board.
+
+![Board picker](assets/tui-board-list.png)
+
+![Kanban board](assets/tui-kanban.png)
 
 ```bash
 # Open the TUI (starts with board picker)
