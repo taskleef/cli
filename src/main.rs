@@ -6,6 +6,7 @@ mod display;
 mod error;
 mod models;
 mod resolve;
+mod tui;
 
 use std::io;
 use std::process;
@@ -112,6 +113,8 @@ async fn run() -> error::Result<()> {
             Some(BoardCommand::Clear { column }) => commands::board::clear(&client, &column).await,
             None => commands::board::show(&client, "").await,
         },
+
+        Some(Command::Tui) => tui::run(&client).await,
 
         Some(Command::Completions { shell }) => {
             let mut cmd = Cli::command();

@@ -77,6 +77,10 @@ pub enum Command {
         command: Option<BoardCommand>,
     },
 
+    /// Interactive terminal UI
+    #[command(alias = "t")]
+    Tui,
+
     /// Generate shell completions
     Completions {
         /// Shell to generate completions for
@@ -427,5 +431,17 @@ mod tests {
             Some(Command::Completions { shell }) => assert_eq!(shell, Shell::Bash),
             _ => panic!("Expected Completions command"),
         }
+    }
+
+    #[test]
+    fn test_parse_tui() {
+        let cli = Cli::try_parse_from(["taskleef", "tui"]).unwrap();
+        assert!(matches!(cli.command, Some(Command::Tui)));
+    }
+
+    #[test]
+    fn test_parse_tui_alias() {
+        let cli = Cli::try_parse_from(["taskleef", "t"]).unwrap();
+        assert!(matches!(cli.command, Some(Command::Tui)));
     }
 }

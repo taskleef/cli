@@ -4,41 +4,19 @@ A command-line interface for managing todos with the [Taskleef](https://taskleef
 
 ## Prerequisites
 
-- `curl` - for making API requests
-- `jq` - for parsing JSON responses
-
-### Installing jq
-
-**macOS:**
-```bash
-brew install jq
-```
-
-**Ubuntu/Debian:**
-```bash
-sudo apt-get install jq
-```
+- Rust toolchain (for building from source)
 
 ## Installation
-
-### Option 1: Clone and add to PATH
 
 ```bash
 git clone https://github.com/Xatter/taskleef.git
 cd taskleef
-chmod +x todo
+cargo build --release
 ```
 
-Add to your PATH by adding this to your `~/.bashrc` or `~/.zshrc`:
+The binary will be at `target/release/taskleef`. Copy it to your PATH:
 ```bash
-export PATH="$PATH:/path/to/taskleef"
-```
-
-### Option 2: Copy to a directory in your PATH
-
-```bash
-git clone https://github.com/Xatter/taskleef.git
-sudo cp taskleef/todo /usr/local/bin/
+cp target/release/taskleef /usr/local/bin/
 ```
 
 ## Configuration
@@ -250,6 +228,34 @@ todo board assign <card-title-or-id>
 todo board clear <column-name-or-id>
 ```
 
+### Interactive TUI
+
+Launch a full-screen terminal UI with an interactive kanban board:
+
+```bash
+# Open the TUI (starts with board picker)
+todo tui
+todo t
+```
+
+**Board picker**: `↑/↓` to select, `Enter` to open, `q` to quit.
+
+**Kanban board**:
+| Key | Action |
+|-----|--------|
+| `←/→` or `h/l` | Navigate columns |
+| `↑/↓` or `j/k` | Navigate cards |
+| `Enter` | Open card detail (animated) |
+| `m` | Move card to another column |
+| `d` | Mark card as done |
+| `b` | Mark card as blocked |
+| `i` | Mark card as active (inbox) |
+| `r` | Refresh board data |
+| `Esc` | Back to board list |
+| `q` | Quit |
+
+Cards are grouped by status within each column (Active, Blocked, Done) and all are navigable.
+
 ## Finding Todos, Projects, and Boards
 
 Commands that accept an identifier support:
@@ -306,6 +312,3 @@ Moved: Feature A -> Done
 ## License
 
 MIT
-// merge test Tue Mar 24 09:49:11 EDT 2026
-// merge auto-move test
-// merge test Tue Mar 24 10:03:08 EDT 2026
