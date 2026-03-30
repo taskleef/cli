@@ -41,8 +41,8 @@ TASKLEEF_API_KEY=your-api-key-here
 
 Then use the `--auth-file` flag:
 ```bash
-todo --auth-file ~/.taskleef.auth list
-todo -a ~/.taskleef.auth list
+taskleef --auth-file ~/.taskleef.auth list
+taskleef -a ~/.taskleef.auth list
 ```
 
 This is useful for managing multiple accounts or keeping credentials separate.
@@ -56,21 +56,21 @@ export TASKLEEF_API_URL=https://your-server.com
 
 ### Optional: Command Alias
 
-If you prefer using `tl` instead of `todo`, add this alias to your `~/.bashrc` or `~/.zshrc`:
+If you prefer using `tl` instead of `taskleef`, add this alias to your `~/.bashrc` or `~/.zshrc`:
 ```bash
-alias tl=todo
+alias tl=taskleef
 ```
 
 ## Tab Completion
 
 ### Bash
 ```bash
-source /path/to/taskleef/todo-completion.bash
+source /path/to/taskleef/taskleef-completion.bash
 ```
 
 ### Zsh
 ```bash
-source /path/to/taskleef/todo-completion.zsh
+source /path/to/taskleef/taskleef-completion.zsh
 ```
 
 Add the appropriate line to your `~/.bashrc` or `~/.zshrc` to enable completion on startup.
@@ -132,100 +132,100 @@ See the [full API documentation](https://taskleef.com/docs) for all 39 available
 ### Global Options
 
 ```bash
-todo [--auth-file <path>] <command> [args]
-todo [-a <path>] <command> [args]
+taskleef [--auth-file <path>] <command> [args]
+taskleef [-a <path>] <command> [args]
 ```
 
 ### Basic Commands
 
 ```bash
 # List pending todos
-todo list
-todo ls
+taskleef list
+taskleef ls
 
 # List all todos (including completed)
-todo list -a
+taskleef list -a
 
 # Add a new todo
-todo add "Buy groceries"
+taskleef add "Buy groceries"
 
 # Quick add (without 'add' keyword)
-todo "Buy groceries"
+taskleef "Buy groceries"
 
 # Show a todo with details and subtasks
-todo show <title-or-id>
+taskleef show <title-or-id>
 
 # Mark a todo as complete
-todo complete <title-or-id>
-todo done <title-or-id>
+taskleef complete <title-or-id>
+taskleef done <title-or-id>
 
 # Delete a todo
-todo delete <title-or-id>
-todo rm <title-or-id>
+taskleef delete <title-or-id>
+taskleef rm <title-or-id>
 ```
 
 ### Inbox
 
 ```bash
 # List todos not assigned to any project
-todo inbox
+taskleef inbox
 ```
 
 ### Subtasks
 
 ```bash
 # Add a subtask to a todo
-todo subtask <parent-title-or-id> "Subtask title"
+taskleef subtask <parent-title-or-id> "Subtask title"
 ```
 
 ### Projects
 
 ```bash
 # List all projects
-todo project list
+taskleef project list
 
 # Create a new project
-todo project add "Project Name"
+taskleef project add "Project Name"
 
 # Show project with its todos
-todo project show <project-name-or-id>
+taskleef project show <project-name-or-id>
 
 # Delete a project
-todo project delete <project-name-or-id>
+taskleef project delete <project-name-or-id>
 
 # Add a todo to a project
-todo project add-todo <project-name-or-id> <todo-title-or-id>
+taskleef project add-todo <project-name-or-id> <todo-title-or-id>
 
 # Remove a todo from a project
-todo project remove-todo <project-name-or-id> <todo-title-or-id>
+taskleef project remove-todo <project-name-or-id> <todo-title-or-id>
 ```
 
 ### Boards (Kanban)
 
 ```bash
 # Show default board (ASCII view)
-todo board
+taskleef board
 
 # List all accessible boards
-todo board list
+taskleef board list
 
 # Show a specific board with columns and cards
-todo board show <board-name-or-id>
+taskleef board show <board-name-or-id>
 
 # List cards in a specific column
-todo board column <column-name-or-id>
+taskleef board column <column-name-or-id>
 
 # Move a card to a different column
-todo board move <card-title-or-id> <column-name-or-id>
+taskleef board move <card-title-or-id> <column-name-or-id>
 
 # Mark a card as done in its current column
-todo board done <card-title-or-id>
+taskleef board done <card-title-or-id>
 
 # Assign a card to the current user
-todo board assign <card-title-or-id>
+taskleef board assign <card-title-or-id>
 
 # Delete all cards in a column
-todo board clear <column-name-or-id>
+taskleef board clear <column-name-or-id>
 ```
 
 ### Interactive TUI
@@ -238,8 +238,8 @@ Launch a full-screen terminal UI with an interactive kanban board.
 
 ```bash
 # Open the TUI (starts with board picker)
-todo tui
-todo t
+taskleef tui
+taskleef t
 ```
 
 **Board picker**: `↑/↓` to select, `Enter` to open, `q` to quit.
@@ -260,7 +260,7 @@ todo t
 
 Cards are grouped by status within each column (Active, Blocked, Done) and all are navigable.
 
-## Finding Todos, Projects, and Boards
+## Finding todos, projects, and boards
 
 Commands that accept an identifier support:
 
@@ -271,29 +271,29 @@ Commands that accept an identifier support:
 
 ```bash
 # Add a todo
-$ todo add "Review pull request"
+$ taskleef add "Review pull request"
 Created: Review pull request (a1b2c)
 
 # List todos
-$ todo ls
+$ taskleef ls
 Pending todos:
 
   ○ a1b2c  Review pull request
   ● d3e4f  2024-01-15  Fix login bug
 
 # Complete a todo by title
-$ todo done "pull request"
+$ taskleef done "pull request"
 Completed: Review pull request
 
 # Create a project and add todos
-$ todo project add "Website Redesign"
+$ taskleef project add "Website Redesign"
 Created project: Website Redesign (x7y8z)
 
-$ todo project add-todo "Website" "Fix login"
+$ taskleef project add-todo "Website" "Fix login"
 Added todo to project: Website Redesign
 
 # View a kanban board
-$ todo board
+$ taskleef board
 ┌─────────────┬─────────────┬─────────────┐
 │ Backlog     │ In Progress │ Done        │
 ├─────────────┼─────────────┼─────────────┤
@@ -302,7 +302,7 @@ $ todo board
 └─────────────┴─────────────┴─────────────┘
 
 # Move a card to a different column
-$ todo board move "Feature A" "Done"
+$ taskleef board move "Feature A" "Done"
 Moved: Feature A -> Done
 ```
 
